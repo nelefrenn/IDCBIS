@@ -22,7 +22,7 @@ app.add_middleware(
     allow_origins=["https://nelefrenn.github.io"],  # Permitir solo el frontend
     allow_credentials=True,
     allow_methods=["GET", "POST", "OPTIONS"],  # Métodos permitidos
-    allow_headers=["*"],  # Permitir todas las cabeceras
+    allow_headers=["Content-Type", "Authorization"],  # Permitir solo encabezados necesarios
 )
 
 # Ruta raíz para comprobar que el backend funciona
