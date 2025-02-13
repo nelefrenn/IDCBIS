@@ -117,7 +117,7 @@ async def chat_endpoint(request: ChatRequest):
 
         # Leer la respuesta en streaming y ensamblar el texto correctamente
         answer_parts = []
-        buffer_word = ""  # Para acumular fragmentos de palabras cortadas
+        buffer_word = ""  # Para acumular fragmentos parciales de palabras
 
         for line in response.iter_lines():
             if line:
@@ -139,8 +139,13 @@ async def chat_endpoint(request: ChatRequest):
                 except Exception as e:
                     logger.error(f"Error al procesar chunk de Humata AI: {str(e)} - Datos: {line}")
 
+        # Si quedó un fragmento en buffer_word, agregarlo al final
+        if buffer_word:
+            answer_parts.append(buffer_word)
+
         # Unir los fragmentos correctamente y limpiar el texto
-        final_answer = " ".join(answer_parts).replace(" ,", ",").replace(" .", ".").strip()
+        final_answer = " ".join(answer_parts)
+        final_answer = final_answer.replace(" ,", ",").replace(" .", ".").strip()
 
         if not final_answer:
             final_answer = "No encontré una respuesta en los documentos."
@@ -150,6 +155,10 @@ async def chat_endpoint(request: ChatRequest):
     except requests.exceptions.RequestException as e:
         logger.error(f"Error en la solicitud a Humata AI: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Error en la solicitud a Humata AI: {str(e)}")
+    except Exception as e:
+        logger.error(f"Error inesperado: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Error inesperado: {str(e)}")
+
     except Exception as e:
         logger.error(f"Error inesperado: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Error inesperado: {str(e)}")
