@@ -117,7 +117,7 @@ async def chat_endpoint(request: ChatRequest):
 
         # Leer la respuesta en streaming y ensamblar el texto correctamente
         answer_parts = []
-        last_word = ""  # Para almacenar fragmentos parciales de palabras
+        buffer_word = ""  # Para acumular fragmentos de palabras cortadas
 
         for line in response.iter_lines():
             if line:
@@ -127,18 +127,13 @@ async def chat_endpoint(request: ChatRequest):
                     json_data = json.loads(line_data)  # Convertir string a JSON
                     content = json_data.get("content", "")
 
-                    # Unir fragmentos parciales de palabras
-                    if last_word and content and not content.startswith(" "):
-                        last_word += content
-                        continue
-                    elif last_word:
-                        answer_parts.append(last_word)
-                        last_word = ""
-
-                    # Si el fragmento es muy corto (sílabas o letras sueltas), guardarlo para la próxima unión
-                    if len(content) < 4 and content not in [".", ",", ";", ":", " "]:
-                        last_word = content
+                    # Si el fragmento es muy corto, lo acumulamos en el buffer
+                    if len(content) <= 3 and content not in [".", ",", ";", ":", " "]:
+                        buffer_word += content
                     else:
+                        if buffer_word:
+                            content = buffer_word + content  # Unir fragmento acumulado con el nuevo
+                            buffer_word = ""  # Reiniciar buffer
                         answer_parts.append(content)
 
                 except Exception as e:
@@ -158,3 +153,4 @@ async def chat_endpoint(request: ChatRequest):
     except Exception as e:
         logger.error(f"Error inesperado: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Error inesperado: {str(e)}")
+
