@@ -67,7 +67,7 @@ def create_conversation():
         return None
 
     if response.status_code == 200:
-        conversation_id = response_data.get("conversationId")
+        conversation_id = response_data.get("id")  # Cambio de "conversationId" a "id"
 
         if not conversation_id:
             logger.error(f"Humata AI no devolvió un conversationId válido. Respuesta: {response_data}")
@@ -132,4 +132,5 @@ async def chat_endpoint(request: ChatRequest):
     except Exception as e:
         logger.error(f"Error inesperado: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Error inesperado: {str(e)}")
+
 
