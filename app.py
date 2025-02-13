@@ -12,21 +12,25 @@ logger = logging.getLogger(__name__)
 # Cargar la API Key de Humata AI y el document_id desde las variables de entorno
 HUMATA_API_KEY = os.getenv("HUMATA_API_KEY")  # API Key
 DOCUMENT_ID = os.getenv("HUMATA_DOCUMENT_ID")  # Documento al que se hará preguntas
-CREATE_CONVERSATION_ENDPOINT = "https://app.humata.ai/api/v1/conversations"  # Endpoint para crear conversación
-ASK_ENDPOINT = "https://app.humata.ai/api/v1/ask"  # Endpoint para preguntar en la conversación
+
+# Endpoints de Humata AI
+CREATE_CONVERSATION_ENDPOINT = "https://app.humata.ai/api/v1/conversations"  
+ASK_ENDPOINT = "https://app.humata.ai/api/v1/ask"  
+
+# Variable global para almacenar conversationId (evita crear múltiples conversaciones)
+CONVERSATION_ID = None  
 
 app = FastAPI()
 
 # Habilitar CORS para permitir solicitudes desde el frontend específico
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["https://nelefrenn.github.io"],  # Permitir solo el frontend
+    allow_origins=["https://nelefrenn.github.io"],  
     allow_credentials=True,
-    allow_methods=["GET", "POST", "OPTIONS"],  # Métodos permitidos
-    allow_headers=["Content-Type", "Authorization"],  # Permitir solo encabezados necesarios
+    allow_methods=["GET", "POST", "OPTIONS"],  
+    allow_headers=["Content-Type", "Authorization"],  
 )
 
-# Ruta raíz para comprobar que el backend funciona
 @app.get("/")
 @app.head("/")
 def home():
@@ -37,27 +41,35 @@ class ChatRequest(BaseModel):
 
 # Función para crear una nueva conversación con el documento
 def create_conversation():
+    global CONVERSATION_ID  # Usamos la variable global
+
+    if CONVERSATION_ID:
+        logger.info(f"Usando conversación existente: {CONVERSATION_ID}")
+        return CONVERSATION_ID
+
     headers = {
         "Authorization": f"Bearer {HUMATA_API_KEY}",
         "Content-Type": "application/json"
     }
     payload = {
-        "documentIds": [DOCUMENT_ID]  # Crear conversación con el documento
+        "documentIds": [DOCUMENT_ID]  
     }
     
     logger.info(f"Creando nueva conversación con Humata AI usando DOCUMENT_ID: {DOCUMENT_ID}")
     response = requests.post(CREATE_CONVERSATION_ENDPOINT, json=payload, headers=headers)
-    
-    # Imprimir la respuesta completa de la API para depuración
+
     logger.info(f"Respuesta completa de Humata AI al crear conversación: {response.status_code} - {response.text}")
 
     if response.status_code == 200:
         conversation_data = response.json()
         conversation_id = conversation_data.get("conversationId")
+
         if not conversation_id:
             logger.error("Humata AI no devolvió un conversationId válido.")
             return None
+
         logger.info(f"Conversación creada con ID: {conversation_id}")
+        CONVERSATION_ID = conversation_id  # Guardamos el ID de la conversación
         return conversation_id
     else:
         logger.error(f"Error al crear conversación: {response.status_code} - {response.text}")
@@ -65,6 +77,8 @@ def create_conversation():
 
 @app.post("/chat")
 async def chat_endpoint(request: ChatRequest):
+    global CONVERSATION_ID  
+
     if not HUMATA_API_KEY:
         logger.error("API Key no configurada. Verifica las variables de entorno en Render.")
         raise HTTPException(status_code=500, detail="API Key no configurada. Verifica las variables de entorno en Render.")
@@ -72,7 +86,7 @@ async def chat_endpoint(request: ChatRequest):
     if not DOCUMENT_ID:
         logger.error("DOCUMENT_ID no configurado. Verifica las variables de entorno en Render.")
         raise HTTPException(status_code=500, detail="DOCUMENT_ID no configurado. Verifica las variables de entorno en Render.")
-    
+
     # Crear una conversación antes de hacer preguntas
     conversation_id = create_conversation()
     if not conversation_id:
@@ -85,7 +99,7 @@ async def chat_endpoint(request: ChatRequest):
         }
         
         payload = {
-            "conversationId": conversation_id,  # Usar la conversación recién creada
+            "conversationId": conversation_id,  
             "model": "gpt-4-turbo-preview",
             "question": request.message,
         }
