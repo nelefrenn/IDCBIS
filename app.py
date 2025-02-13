@@ -40,9 +40,9 @@ async def chat_endpoint(request: ChatRequest):
         logger.error("API Key no configurada. Verifica las variables de entorno en Render.")
         raise HTTPException(status_code=500, detail="API Key no configurada. Verifica las variables de entorno en Render.")
     
-    if not DOCUMENT_ID:
-        logger.error("DOCUMENT_ID no configurado. Verifica las variables de entorno en Render.")
-        raise HTTPException(status_code=500, detail="DOCUMENT_ID no configurado. Verifica las variables de entorno en Render.")
+    if not DOCUMENT_ID or DOCUMENT_ID.strip() == "":
+        logger.error(f"DOCUMENT_ID no configurado o vacío. Valor actual: {DOCUMENT_ID}")
+        raise HTTPException(status_code=500, detail=f"DOCUMENT_ID no configurado o vacío. Verifica las variables de entorno en Render.")
     
     try:
         logger.info(f"Usando DOCUMENT_ID: {DOCUMENT_ID}")  # Log para verificar si DOCUMENT_ID está vacío
