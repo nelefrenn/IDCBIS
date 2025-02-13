@@ -117,6 +117,8 @@ async def chat_endpoint(request: ChatRequest):
 
         # Leer la respuesta en streaming y ensamblar el texto correctamente
         answer_parts = []
+        temp_word = ""  # Para almacenar fragmentos parciales de palabras
+
         for line in response.iter_lines():
             if line:
                 try:
@@ -124,12 +126,21 @@ async def chat_endpoint(request: ChatRequest):
                     logger.info(f"Recibido chunk: {line_data}")  # Log para depuración
                     json_data = json.loads(line_data)  # Convertir string a JSON
                     content = json_data.get("content", "")
-                    answer_parts.append(content)
+
+                    # Unir fragmentos parciales
+                    if content.endswith("-"):  # Si el fragmento termina en "-", es una palabra cortada
+                        temp_word += content[:-1]  # Eliminar el "-" y guardar
+                    elif temp_word:
+                        answer_parts.append(temp_word + content)  # Unir fragmento con la palabra siguiente
+                        temp_word = ""
+                    else:
+                        answer_parts.append(content)
                 except Exception as e:
                     logger.error(f"Error al procesar chunk de Humata AI: {str(e)} - Datos: {line}")
 
-        # Unir los fragmentos de manera correcta
-        final_answer = " ".join(answer_parts).strip()
+        # Unir los fragmentos correctamente y limpiar el texto
+        final_answer = " ".join(answer_parts).replace(" ,", ",").replace(" .", ".").strip()
+
         if not final_answer:
             final_answer = "No encontré una respuesta en los documentos."
 
@@ -141,4 +152,3 @@ async def chat_endpoint(request: ChatRequest):
     except Exception as e:
         logger.error(f"Error inesperado: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Error inesperado: {str(e)}")
-
