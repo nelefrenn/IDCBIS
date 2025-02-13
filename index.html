@@ -2,8 +2,7 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Asistente Virtual - IDCBIS</title>
+    <title>Asistente Virtual IDCBIS</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -29,34 +28,23 @@
             align-items: center;
         }
         img {
-            max-width: 300px;
+            max-width: 200px;
             height: auto;
             margin-bottom: 20px;
         }
         h1 {
             color: #0A3D91;
-            font-size: 32px;
-            text-align: center;
+            font-size: 28px;
             margin: 20px 0;
         }
         h2 {
-            font-size: 22px;
+            font-size: 20px;
             color: #333;
             text-align: center;
             margin: 10px 0 20px;
         }
-        .notice {
-            background: #D4AF37;
-            color: white;
-            padding: 15px;
-            border-radius: 5px;
-            font-size: 18px;
-            margin-top: 20px;
-            text-align: center;
-        }
         #chat-container {
             margin-top: 30px;
-            border: 2px solid #D4AF37;
             padding: 20px;
             border-radius: 10px;
             background: #F5F5F5;
@@ -94,8 +82,8 @@
             margin-left: 5px;
         }
 
-        /* Estilos para el preloader */
-        .preloader {
+        /* Preloader */
+        #preloader {
             display: none; /* Oculto por defecto */
             position: absolute;
             top: 50%;
@@ -109,7 +97,6 @@
             box-shadow: 0 0 10px rgba(0, 0, 0, 0.2);
         }
 
-        /* Animación de carga */
         .spinner {
             width: 24px;
             height: 24px;
@@ -131,14 +118,12 @@
     <div class="container">
         <img src="logo.png" alt="IDCBIS Logo">
         <h1>Bienvenido al Asistente Virtual del IDCBIS</h1>
-        <h2>Esta herramienta te permite encontrar información sobre documentos relacionados con la actividad laboral dentro del Instituto.</h2>
-        <div class="notice">
-            <p><strong>⚠ Versión en Desarrollo:</strong> Actualmente, el asistente solo puede proporcionar información sobre Fenotipado Seriado. Estamos trabajando para expandir su funcionalidad. ¡Gracias por tu paciencia! 😊</p>
-        </div>
+        <h2>Encuentra información sobre Fenotipado Seriado y más.</h2>
+
         <div id="chat-container">
             <div id="chat-box"></div>
-            <div class="preloader" id="preloader">
-                <span>Pensando...</span>
+            <div id="preloader">
+                <span>Procesando tu consulta, por favor espera...</span>
                 <div class="spinner"></div>
             </div>
             <div id="chat-controls">
@@ -149,6 +134,7 @@
             </div>
         </div>
     </div>
+
     <script>
         document.getElementById("send-button").addEventListener("click", async function() {
             let userInput = document.getElementById("user-input").value;
@@ -161,15 +147,26 @@
             preloader.style.display = "block"; // Mostrar el preloader
             
             try {
-                let response = await fetch("https://idcbis.onrender.com/chat", {
+                let response = await fetch("https://idcbis.onrender.com", {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({ message: userInput })
                 });
 
                 let result = await response.json();
-                preloader.style.display = "none"; // Ocultar el preloader cuando llega la respuesta
-                chatBox.innerHTML += `<p><strong>Asistente:</strong> ${result.reply}</p>`;
+                preloader.style.display = "none"; // Ocultar preloader cuando llega la respuesta
+                
+                // Agregar frases de cierre para hacerlo más profesional
+                let closingPhrases = [
+                    "Espero haber sido de ayuda. 😊",
+                    "Si tienes más dudas, aquí estaré para ayudarte.",
+                    "Gracias por tu consulta. ¡Que tengas un buen día! 🚀",
+                    "¿Necesitas más información? Pregunta sin problema."
+                ];
+
+                let finalMessage = result.reply + " " + closingPhrases[Math.floor(Math.random() * closingPhrases.length)];
+
+                chatBox.innerHTML += `<p><strong>Asistente:</strong> ${finalMessage}</p>`;
             } catch (error) {
                 preloader.style.display = "none"; // Ocultar preloader en caso de error
                 chatBox.innerHTML += `<p><strong>Error:</strong> No se pudo obtener respuesta. Intenta de nuevo.</p>`;
