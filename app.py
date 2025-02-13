@@ -123,7 +123,6 @@ async def chat_endpoint(request: ChatRequest):
             if line:
                 try:
                     line_data = line.decode("utf-8").replace("data: ", "").strip()
-                    logger.info(f"Recibido chunk: {line_data}")  # Log para depuración
                     json_data = json.loads(line_data)  # Convertir string a JSON
                     content = json_data.get("content", "")
 
@@ -145,7 +144,17 @@ async def chat_endpoint(request: ChatRequest):
 
         # Unir los fragmentos correctamente y limpiar el texto
         final_answer = " ".join(answer_parts)
-        final_answer = final_answer.replace(" ,", ",").replace(" .", ".").strip()
+
+        # Ajustar espacios en signos de puntuación
+        final_answer = (
+            final_answer.replace(" ,", ",")
+                        .replace(" .", ".")
+                        .replace(" :", ":")
+                        .replace(" ;", ";")
+                        .replace("( ", "(")
+                        .replace(" )", ")")
+                        .strip()
+        )
 
         if not final_answer:
             final_answer = "No encontré una respuesta en los documentos."
@@ -158,6 +167,7 @@ async def chat_endpoint(request: ChatRequest):
     except Exception as e:
         logger.error(f"Error inesperado: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Error inesperado: {str(e)}")
+
 
     except Exception as e:
         logger.error(f"Error inesperado: {str(e)}")
