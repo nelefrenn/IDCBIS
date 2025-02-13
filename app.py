@@ -4,7 +4,7 @@ import requests
 import os
 
 # Cargar la API Key de Humata AI desde las variables de entorno
-HUMATA_API_KEY = os.getenv("8bec1799eaacf6519239f45d5b137eba444f2a5a9adb069c37952a2e1229")
+HUMATA_API_KEY = os.getenv("HUMATA_API_KEY")  # Usa el nombre correcto de la variable de entorno
 HUMATA_ENDPOINT = "https://app.humata.ai/api/v1/conversations"  # Reemplaza con el endpoint correcto si cambia
 
 app = FastAPI()
@@ -14,6 +14,9 @@ class ChatRequest(BaseModel):
 
 @app.post("/chat")
 async def chat_endpoint(request: ChatRequest):
+    if not HUMATA_API_KEY:
+        raise HTTPException(status_code=500, detail="API Key no configurada. Verifica las variables de entorno.")
+    
     try:
         headers = {
             "Authorization": f"Bearer {HUMATA_API_KEY}",
@@ -33,5 +36,7 @@ async def chat_endpoint(request: ChatRequest):
         else:
             raise HTTPException(status_code=response.status_code, detail=response_data)
 
+    except requests.exceptions.RequestException as e:
+        raise HTTPException(status_code=500, detail=f"Error en la solicitud a Humata AI: {str(e)}")
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
