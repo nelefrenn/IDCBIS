@@ -127,14 +127,17 @@ async def chat_endpoint(request: ChatRequest):
                     json_data = json.loads(line_data)  # Convertir string a JSON
                     content = json_data.get("content", "")
 
-                    # Si la última palabra estaba incompleta, la unimos
-                    if last_word:
-                        content = last_word + content
+                    # Unir fragmentos parciales de palabras
+                    if last_word and content and not content.startswith(" "):
+                        last_word += content
+                        continue
+                    elif last_word:
+                        answer_parts.append(last_word)
                         last_word = ""
 
-                    # Si el fragmento es muy corto, puede ser una palabra cortada
-                    if len(content) < 3:
-                        last_word = content  # Guardamos para unir con el siguiente fragmento
+                    # Si el fragmento es muy corto (sílabas o letras sueltas), guardarlo para la próxima unión
+                    if len(content) < 4 and content not in [".", ",", ";", ":", " "]:
+                        last_word = content
                     else:
                         answer_parts.append(content)
 
