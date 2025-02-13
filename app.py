@@ -53,25 +53,27 @@ async def chat_endpoint(request: ChatRequest):
         
         payload = {
             "query": request.message,
-            "document_id": DOCUMENT_ID,  # Usamos el DOCUMENT_ID configurado en Render
+            "documentIds": [DOCUMENT_ID],  # Se envía como lista según la documentación de Humata AI
         }
         
         logger.info(f"Enviando solicitud a Humata AI con payload: {payload}")
         response = requests.post(HUMATA_ENDPOINT, json=payload, headers=headers)
         response_data = response.json()
         
-        logger.info(f"Respuesta de Humata AI: {response_data}")
+        logger.info(f"Código de respuesta de Humata AI: {response.status_code}")
+        logger.info(f"Respuesta completa de Humata AI: {response_data}")
 
         if response.status_code == 200:
             return {"reply": response_data.get("answer", "No encontré una respuesta en los documentos.")}
         else:
             logger.error(f"Error en la API de Humata AI: {response_data}")
-            raise HTTPException(status_code=response.status_code, detail=response_data)
+            raise HTTPException(status_code=response.status_code, detail=f"Error de Humata AI: {response_data}")
 
     except requests.exceptions.RequestException as e:
         logger.error(f"Error en la solicitud a Humata AI: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Error en la solicitud a Humata AI: {str(e)}")
     except Exception as e:
         logger.error(f"Error inesperado: {str(e)}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=f"Error inesperado: {str(e)}")
+
 
