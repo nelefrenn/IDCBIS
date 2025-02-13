@@ -64,6 +64,7 @@
             min-height: 350px;
             display: flex;
             flex-direction: column;
+            position: relative;
         }
         #chat-box {
             width: 100%;
@@ -92,6 +93,38 @@
             cursor: pointer;
             margin-left: 5px;
         }
+
+        /* Estilos para el preloader */
+        .preloader {
+            display: none; /* Oculto por defecto */
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 18px;
+            color: #0A3D91;
+            background: rgba(255, 255, 255, 0.9);
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.2);
+        }
+
+        /* Animación de carga */
+        .spinner {
+            width: 24px;
+            height: 24px;
+            border: 3px solid rgba(10, 61, 145, 0.3);
+            border-top: 3px solid #0A3D91;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            display: inline-block;
+            margin-left: 10px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
     </style>
 </head>
 <body>
@@ -104,6 +137,10 @@
         </div>
         <div id="chat-container">
             <div id="chat-box"></div>
+            <div class="preloader" id="preloader">
+                <span>Pensando...</span>
+                <div class="spinner"></div>
+            </div>
             <div id="chat-controls">
                 <input type="text" id="user-input" placeholder="Escribe tu pregunta aquí...">
                 <button id="send-button">Enviar</button>
@@ -118,30 +155,16 @@
             if (!userInput) return;
 
             let chatBox = document.getElementById("chat-box");
+            let preloader = document.getElementById("preloader");
+            
             chatBox.innerHTML += `<p><strong>Tú:</strong> ${userInput}</p>`;
+            preloader.style.display = "block"; // Mostrar el preloader
             
-            let response = await fetch("https://idcbis.onrender.com/chat", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ message: userInput })
-            });
-            
-            let result = await response.json();
-            chatBox.innerHTML += `<p><strong>Asistente:</strong> ${result.reply}</p>`;
-            document.getElementById("user-input").value = "";
-            chatBox.scrollTop = chatBox.scrollHeight;
-        });
-        
-        document.getElementById("copy-button").addEventListener("click", function() {
-            let chatContent = document.getElementById("chat-box").innerText;
-            navigator.clipboard.writeText(chatContent).then(() => {
-                alert("Chat copiado al portapapeles");
-            });
-        });
-        
-        document.getElementById("clear-button").addEventListener("click", function() {
-            document.getElementById("chat-box").innerHTML = "";
-        });
-    </script>
-</body>
-</html>
+            try {
+                let response = await fetch("https://tu-backend-en-render.com/chat", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ message: userInput })
+                });
+
+             
