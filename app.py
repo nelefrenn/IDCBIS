@@ -117,7 +117,7 @@ async def chat_endpoint(request: ChatRequest):
 
         # Leer la respuesta en streaming y ensamblar el texto correctamente
         answer_parts = []
-        temp_word = ""  # Para almacenar fragmentos parciales de palabras
+        last_word = ""  # Para almacenar fragmentos parciales de palabras
 
         for line in response.iter_lines():
             if line:
@@ -127,14 +127,17 @@ async def chat_endpoint(request: ChatRequest):
                     json_data = json.loads(line_data)  # Convertir string a JSON
                     content = json_data.get("content", "")
 
-                    # Unir fragmentos parciales
-                    if content.endswith("-"):  # Si el fragmento termina en "-", es una palabra cortada
-                        temp_word += content[:-1]  # Eliminar el "-" y guardar
-                    elif temp_word:
-                        answer_parts.append(temp_word + content)  # Unir fragmento con la palabra siguiente
-                        temp_word = ""
+                    # Si la última palabra estaba incompleta, la unimos
+                    if last_word:
+                        content = last_word + content
+                        last_word = ""
+
+                    # Si el fragmento es muy corto, puede ser una palabra cortada
+                    if len(content) < 3:
+                        last_word = content  # Guardamos para unir con el siguiente fragmento
                     else:
                         answer_parts.append(content)
+
                 except Exception as e:
                     logger.error(f"Error al procesar chunk de Humata AI: {str(e)} - Datos: {line}")
 
