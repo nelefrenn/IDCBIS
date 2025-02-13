@@ -58,7 +58,6 @@ def create_conversation():
     logger.info(f"Creando nueva conversación con Humata AI usando DOCUMENT_ID: {DOCUMENT_ID}")
     response = requests.post(CREATE_CONVERSATION_ENDPOINT, json=payload, headers=headers)
 
-    # Imprimir respuesta completa para depuración
     try:
         response_data = response.json()
         logger.info(f"Respuesta de Humata AI al crear conversación: {response.status_code} - {response_data}")
@@ -109,30 +108,36 @@ async def chat_endpoint(request: ChatRequest):
         }
         
         logger.info(f"Preguntando a Humata AI con payload: {payload}")
-        response = requests.post(ASK_ENDPOINT, json=payload, headers=headers)
+        response = requests.post(ASK_ENDPOINT, json=payload, headers=headers, stream=True)
 
-        # Intentamos capturar la respuesta completa para entender el error
-        try:
-            response_data = response.json()
-            logger.info(f"Respuesta de Humata AI al preguntar: {response.status_code} - {response_data}")
-        except Exception as e:
-            logger.error(f"No se pudo parsear la respuesta de Humata AI: {str(e)} - Respuesta: {response.text}")
-            raise HTTPException(status_code=500, detail="Error en la respuesta de Humata AI.")
+        if response.status_code != 200:
+            logger.error(f"Error en la API de Humata AI: {response.status_code} - {response.text}")
+            raise HTTPException(status_code=response.status_code, detail=f"Error de Humata AI: {response.text}")
 
-        # Si la respuesta es 500, mostramos más detalles
-        if response.status_code == 500:
-            logger.error(f"Error interno de Humata AI: {response_data}")
-            raise HTTPException(status_code=500, detail=f"Error de Humata AI: {response_data}")
+        # Leer la respuesta en streaming
+        answer = ""
+        for line in response.iter_lines():
+            if line:
+                try:
+                    line_data = line.decode("utf-8").replace("data: ", "").strip()
+                    logger.info(f"Recibido chunk: {line_data}")  # Log para depuración
+                    json_data = eval(line_data)  # Convertir string a diccionario
+                    content = json_data.get("content", "")
+                    answer += content + " "
+                except Exception as e:
+                    logger.error(f"Error al procesar chunk de Humata AI: {str(e)} - Datos: {line}")
+        
+        answer = answer.strip() if answer else "No encontré una respuesta en los documentos."
 
-        if response.status_code == 200:
-            return {"reply": response_data.get("answer", "No encontré una respuesta en los documentos.")}
-        else:
-            logger.error(f"Error en la API de Humata AI: Código {response.status_code}, Respuesta {response_data}")
-            raise HTTPException(status_code=response.status_code, detail=f"Error de Humata AI: {response_data}")
+        return {"reply": answer}
 
     except requests.exceptions.RequestException as e:
         logger.error(f"Error en la solicitud a Humata AI: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Error en la solicitud a Humata AI: {str(e)}")
+    except Exception as e:
+        logger.error(f"Error inesperado: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Error inesperado: {str(e)}")
+
     except Exception as e:
         logger.error(f"Error inesperado: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Error inesperado: {str(e)}")
