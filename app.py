@@ -16,13 +16,13 @@ HUMATA_ENDPOINT = "https://app.humata.ai/api/v1/conversations"  # Reemplaza con 
 
 app = FastAPI()
 
-# Habilitar CORS para permitir solicitudes desde el frontend
+# Habilitar CORS para permitir solicitudes desde el frontend específico
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # También puedes restringirlo a tu dominio específico
+    allow_origins=["https://nelefrenn.github.io"],  # Permitir solo el frontend
     allow_credentials=True,
-    allow_methods=["*"],  # Permitir todos los métodos (GET, POST, etc.)
-    allow_headers=["*"],  # Permitir todos los encabezados
+    allow_methods=["GET", "POST", "OPTIONS"],  # Métodos permitidos
+    allow_headers=["*"],  # Permitir todas las cabeceras
 )
 
 # Ruta raíz para comprobar que el backend funciona
@@ -72,4 +72,3 @@ async def chat_endpoint(request: ChatRequest):
     except Exception as e:
         logger.error(f"Error inesperado: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
-
