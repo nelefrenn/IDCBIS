@@ -126,13 +126,15 @@ async def chat_endpoint(request: ChatRequest):
                     json_data = json.loads(line_data)  # Convertir string a JSON
                     content = json_data.get("content", "")
 
-                    # Si el fragmento es muy corto, lo acumulamos en el buffer
-                    if len(content) <= 3 and content not in [".", ",", ";", ":", " "]:
-                        buffer_word += content
+                    # Unir fragmentos cortados
+                    if buffer_word:
+                        content = buffer_word + content
+                        buffer_word = ""
+
+                    # Si el fragmento es muy corto (≤3 caracteres) y no inicia con espacio, lo acumulamos
+                    if len(content) <= 3 and not content.startswith(" "):
+                        buffer_word = content
                     else:
-                        if buffer_word:
-                            content = buffer_word + content  # Unir fragmento acumulado con el nuevo
-                            buffer_word = ""  # Reiniciar buffer
                         answer_parts.append(content)
 
                 except Exception as e:
@@ -145,7 +147,7 @@ async def chat_endpoint(request: ChatRequest):
         # Unir los fragmentos correctamente y limpiar el texto
         final_answer = " ".join(answer_parts)
 
-        # Ajustar espacios en signos de puntuación
+        # Corregir espacios incorrectos en puntuación
         final_answer = (
             final_answer.replace(" ,", ",")
                         .replace(" .", ".")
@@ -167,9 +169,3 @@ async def chat_endpoint(request: ChatRequest):
     except Exception as e:
         logger.error(f"Error inesperado: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Error inesperado: {str(e)}")
-
-
-    except Exception as e:
-        logger.error(f"Error inesperado: {str(e)}")
-        raise HTTPException(status_code=500, detail=f"Error inesperado: {str(e)}")
-
