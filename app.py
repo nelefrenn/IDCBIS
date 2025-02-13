@@ -4,6 +4,7 @@ from pydantic import BaseModel
 import requests
 import os
 import logging
+import json
 
 # Configurar logs
 logging.basicConfig(level=logging.INFO)
@@ -114,22 +115,25 @@ async def chat_endpoint(request: ChatRequest):
             logger.error(f"Error en la API de Humata AI: {response.status_code} - {response.text}")
             raise HTTPException(status_code=response.status_code, detail=f"Error de Humata AI: {response.text}")
 
-        # Leer la respuesta en streaming
-        answer = ""
+        # Leer la respuesta en streaming y ensamblar el texto correctamente
+        answer_parts = []
         for line in response.iter_lines():
             if line:
                 try:
                     line_data = line.decode("utf-8").replace("data: ", "").strip()
                     logger.info(f"Recibido chunk: {line_data}")  # Log para depuración
-                    json_data = eval(line_data)  # Convertir string a diccionario
+                    json_data = json.loads(line_data)  # Convertir string a JSON
                     content = json_data.get("content", "")
-                    answer += content + " "
+                    answer_parts.append(content)
                 except Exception as e:
                     logger.error(f"Error al procesar chunk de Humata AI: {str(e)} - Datos: {line}")
-        
-        answer = answer.strip() if answer else "No encontré una respuesta en los documentos."
 
-        return {"reply": answer}
+        # Unir los fragmentos de manera correcta
+        final_answer = " ".join(answer_parts).strip()
+        if not final_answer:
+            final_answer = "No encontré una respuesta en los documentos."
+
+        return {"reply": final_answer}
 
     except requests.exceptions.RequestException as e:
         logger.error(f"Error en la solicitud a Humata AI: {str(e)}")
@@ -137,9 +141,4 @@ async def chat_endpoint(request: ChatRequest):
     except Exception as e:
         logger.error(f"Error inesperado: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Error inesperado: {str(e)}")
-
-    except Exception as e:
-        logger.error(f"Error inesperado: {str(e)}")
-        raise HTTPException(status_code=500, detail=f"Error inesperado: {str(e)}")
-
 
