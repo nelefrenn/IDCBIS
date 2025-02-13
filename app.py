@@ -67,7 +67,7 @@ def create_conversation():
         return None
 
     if response.status_code == 200:
-        conversation_id = response_data.get("id")  # Cambio de "conversationId" a "id"
+        conversation_id = response_data.get("id")  
 
         if not conversation_id:
             logger.error(f"Humata AI no devolvió un conversationId válido. Respuesta: {response_data}")
@@ -111,14 +111,18 @@ async def chat_endpoint(request: ChatRequest):
         logger.info(f"Preguntando a Humata AI con payload: {payload}")
         response = requests.post(ASK_ENDPOINT, json=payload, headers=headers)
 
+        # Intentamos capturar la respuesta completa para entender el error
         try:
             response_data = response.json()
+            logger.info(f"Respuesta de Humata AI al preguntar: {response.status_code} - {response_data}")
         except Exception as e:
             logger.error(f"No se pudo parsear la respuesta de Humata AI: {str(e)} - Respuesta: {response.text}")
             raise HTTPException(status_code=500, detail="Error en la respuesta de Humata AI.")
 
-        logger.info(f"Código de respuesta de Humata AI: {response.status_code}")
-        logger.info(f"Respuesta completa de Humata AI: {response_data}")
+        # Si la respuesta es 500, mostramos más detalles
+        if response.status_code == 500:
+            logger.error(f"Error interno de Humata AI: {response_data}")
+            raise HTTPException(status_code=500, detail=f"Error de Humata AI: {response_data}")
 
         if response.status_code == 200:
             return {"reply": response_data.get("answer", "No encontré una respuesta en los documentos.")}
