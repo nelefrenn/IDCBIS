@@ -26,7 +26,7 @@ app.add_middleware(
 )
 
 # Ruta raíz para comprobar que el backend funciona
-@app.get("/")
+@app.get("/", methods=["GET", "HEAD"])
 def home():
     return {"message": "Bienvenido al backend del Asistente Virtual IDCBIS"}
 
