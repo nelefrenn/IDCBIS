@@ -45,12 +45,18 @@ def create_conversation():
         "documentIds": [DOCUMENT_ID]  # Crear conversación con el documento
     }
     
-    logger.info("Creando nueva conversación con Humata AI...")
+    logger.info(f"Creando nueva conversación con Humata AI usando DOCUMENT_ID: {DOCUMENT_ID}")
     response = requests.post(CREATE_CONVERSATION_ENDPOINT, json=payload, headers=headers)
     
+    # Imprimir la respuesta completa de la API para depuración
+    logger.info(f"Respuesta completa de Humata AI al crear conversación: {response.status_code} - {response.text}")
+
     if response.status_code == 200:
         conversation_data = response.json()
         conversation_id = conversation_data.get("conversationId")
+        if not conversation_id:
+            logger.error("Humata AI no devolvió un conversationId válido.")
+            return None
         logger.info(f"Conversación creada con ID: {conversation_id}")
         return conversation_id
     else:
@@ -70,8 +76,8 @@ async def chat_endpoint(request: ChatRequest):
     # Crear una conversación antes de hacer preguntas
     conversation_id = create_conversation()
     if not conversation_id:
-        raise HTTPException(status_code=500, detail="No se pudo crear la conversación con Humata AI.")
-    
+        raise HTTPException(status_code=500, detail="No se pudo crear la conversación con Humata AI. Verifica el DOCUMENT_ID y los logs.")
+
     try:
         headers = {
             "Authorization": f"Bearer {HUMATA_API_KEY}",
@@ -84,7 +90,7 @@ async def chat_endpoint(request: ChatRequest):
             "question": request.message,
         }
         
-        logger.info(f"Preguntando a Humata AI: {payload}")
+        logger.info(f"Preguntando a Humata AI con payload: {payload}")
         response = requests.post(ASK_ENDPOINT, json=payload, headers=headers)
         response_data = response.json()
         
@@ -103,4 +109,3 @@ async def chat_endpoint(request: ChatRequest):
     except Exception as e:
         logger.error(f"Error inesperado: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Error inesperado: {str(e)}")
-
