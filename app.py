@@ -10,14 +10,14 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 # Cargar la API Key de Humata AI y el document_id desde las variables de entorno
-HUMATA_API_KEY = os.getenv("HUMATA_API_KEY")  # API Key
-DOCUMENT_ID = os.getenv("HUMATA_DOCUMENT_ID")  # Documento al que se hará preguntas
+HUMATA_API_KEY = os.getenv("HUMATA_API_KEY")  
+DOCUMENT_ID = os.getenv("HUMATA_DOCUMENT_ID")  
 
 # Endpoints de Humata AI
 CREATE_CONVERSATION_ENDPOINT = "https://app.humata.ai/api/v1/conversations"  
 ASK_ENDPOINT = "https://app.humata.ai/api/v1/ask"  
 
-# Variable global para almacenar conversationId (evita crear múltiples conversaciones)
+# Variable global para almacenar conversationId
 CONVERSATION_ID = None  
 
 app = FastAPI()
@@ -41,7 +41,7 @@ class ChatRequest(BaseModel):
 
 # Función para crear una nueva conversación con el documento
 def create_conversation():
-    global CONVERSATION_ID  # Usamos la variable global
+    global CONVERSATION_ID  
 
     if CONVERSATION_ID:
         logger.info(f"Usando conversación existente: {CONVERSATION_ID}")
@@ -58,21 +58,26 @@ def create_conversation():
     logger.info(f"Creando nueva conversación con Humata AI usando DOCUMENT_ID: {DOCUMENT_ID}")
     response = requests.post(CREATE_CONVERSATION_ENDPOINT, json=payload, headers=headers)
 
-    logger.info(f"Respuesta completa de Humata AI al crear conversación: {response.status_code} - {response.text}")
+    # Imprimir respuesta completa para depuración
+    try:
+        response_data = response.json()
+        logger.info(f"Respuesta de Humata AI al crear conversación: {response.status_code} - {response_data}")
+    except Exception as e:
+        logger.error(f"No se pudo parsear la respuesta de Humata AI: {str(e)} - Respuesta: {response.text}")
+        return None
 
     if response.status_code == 200:
-        conversation_data = response.json()
-        conversation_id = conversation_data.get("conversationId")
+        conversation_id = response_data.get("conversationId")
 
         if not conversation_id:
-            logger.error("Humata AI no devolvió un conversationId válido.")
+            logger.error(f"Humata AI no devolvió un conversationId válido. Respuesta: {response_data}")
             return None
 
         logger.info(f"Conversación creada con ID: {conversation_id}")
-        CONVERSATION_ID = conversation_id  # Guardamos el ID de la conversación
+        CONVERSATION_ID = conversation_id  
         return conversation_id
     else:
-        logger.error(f"Error al crear conversación: {response.status_code} - {response.text}")
+        logger.error(f"Error al crear conversación: {response.status_code} - {response_data}")
         return None
 
 @app.post("/chat")
@@ -87,7 +92,6 @@ async def chat_endpoint(request: ChatRequest):
         logger.error("DOCUMENT_ID no configurado. Verifica las variables de entorno en Render.")
         raise HTTPException(status_code=500, detail="DOCUMENT_ID no configurado. Verifica las variables de entorno en Render.")
 
-    # Crear una conversación antes de hacer preguntas
     conversation_id = create_conversation()
     if not conversation_id:
         raise HTTPException(status_code=500, detail="No se pudo crear la conversación con Humata AI. Verifica el DOCUMENT_ID y los logs.")
@@ -106,15 +110,20 @@ async def chat_endpoint(request: ChatRequest):
         
         logger.info(f"Preguntando a Humata AI con payload: {payload}")
         response = requests.post(ASK_ENDPOINT, json=payload, headers=headers)
-        response_data = response.json()
-        
+
+        try:
+            response_data = response.json()
+        except Exception as e:
+            logger.error(f"No se pudo parsear la respuesta de Humata AI: {str(e)} - Respuesta: {response.text}")
+            raise HTTPException(status_code=500, detail="Error en la respuesta de Humata AI.")
+
         logger.info(f"Código de respuesta de Humata AI: {response.status_code}")
         logger.info(f"Respuesta completa de Humata AI: {response_data}")
 
         if response.status_code == 200:
             return {"reply": response_data.get("answer", "No encontré una respuesta en los documentos.")}
         else:
-            logger.error(f"Error en la API de Humata AI: Código {response.status_code}, Respuesta {response.text}")
+            logger.error(f"Error en la API de Humata AI: Código {response.status_code}, Respuesta {response_data}")
             raise HTTPException(status_code=response.status_code, detail=f"Error de Humata AI: {response_data}")
 
     except requests.exceptions.RequestException as e:
@@ -123,3 +132,4 @@ async def chat_endpoint(request: ChatRequest):
     except Exception as e:
         logger.error(f"Error inesperado: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Error inesperado: {str(e)}")
+
