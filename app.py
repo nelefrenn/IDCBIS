@@ -4,6 +4,7 @@ from pydantic import BaseModel
 import requests
 import os
 import logging
+import uvicorn
 
 # Configurar logs
 logging.basicConfig(level=logging.INFO)
@@ -67,4 +68,9 @@ async def chat_endpoint(request: ChatRequest):
     except Exception as e:
         logger.error(f"Error inesperado: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
+
+# Asegurar que la app corre en el puerto correcto en Render
+if __name__ == "__main__":
+    port = int(os.environ.get("PORT", 8000))  # Render asigna un puerto automáticamente
+    uvicorn.run(app, host="0.0.0.0", port=port)
 
