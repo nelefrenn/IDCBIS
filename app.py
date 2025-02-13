@@ -45,6 +45,7 @@ async def chat_endpoint(request: ChatRequest):
         raise HTTPException(status_code=500, detail="DOCUMENT_ID no configurado. Verifica las variables de entorno en Render.")
     
     try:
+        logger.info(f"Usando DOCUMENT_ID: {DOCUMENT_ID}")  # Log para verificar si DOCUMENT_ID está vacío
         headers = {
             "Authorization": f"Bearer {HUMATA_API_KEY}",
             "Content-Type": "application/json"
@@ -55,7 +56,7 @@ async def chat_endpoint(request: ChatRequest):
             "document_id": DOCUMENT_ID,  # Usamos el DOCUMENT_ID configurado en Render
         }
         
-        logger.info(f"Enviando solicitud a Humata AI: {payload}")
+        logger.info(f"Enviando solicitud a Humata AI con payload: {payload}")
         response = requests.post(HUMATA_ENDPOINT, json=payload, headers=headers)
         response_data = response.json()
         
@@ -73,3 +74,4 @@ async def chat_endpoint(request: ChatRequest):
     except Exception as e:
         logger.error(f"Error inesperado: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
+
