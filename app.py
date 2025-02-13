@@ -3,6 +3,11 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 import requests
 import os
+import logging
+
+# Configurar logs
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 # Cargar la API Key de Humata AI desde las variables de entorno
 HUMATA_API_KEY = os.getenv("HUMATA_API_KEY")  # Usa el nombre correcto de la variable de entorno
@@ -19,13 +24,19 @@ app.add_middleware(
     allow_headers=["*"],  # Permitir todos los encabezados
 )
 
+# Ruta raíz para comprobar que el backend funciona
+@app.get("/")
+def home():
+    return {"message": "Bienvenido al backend del Asistente Virtual IDCBIS"}
+
 class ChatRequest(BaseModel):
     message: str
 
 @app.post("/chat")
 async def chat_endpoint(request: ChatRequest):
     if not HUMATA_API_KEY:
-        raise HTTPException(status_code=500, detail="API Key no configurada. Verifica las variables de entorno.")
+        logger.error("API Key no configurada. Verifica las variables de entorno en Render.")
+        raise HTTPException(status_code=500, detail="API Key no configurada. Verifica las variables de entorno en Render.")
     
     try:
         headers = {
@@ -38,15 +49,22 @@ async def chat_endpoint(request: ChatRequest):
             "document_id": "08d2e631-74ed-45e9-ac51-2dfce94b3b01",  # Reemplaza con el ID del documento en Humata AI
         }
         
+        logger.info(f"Enviando solicitud a Humata AI: {payload}")
         response = requests.post(HUMATA_ENDPOINT, json=payload, headers=headers)
         response_data = response.json()
+        
+        logger.info(f"Respuesta de Humata AI: {response_data}")
 
         if response.status_code == 200:
             return {"reply": response_data.get("answer", "No encontré una respuesta en los documentos.")}
         else:
+            logger.error(f"Error en la API de Humata AI: {response_data}")
             raise HTTPException(status_code=response.status_code, detail=response_data)
 
     except requests.exceptions.RequestException as e:
+        logger.error(f"Error en la solicitud a Humata AI: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Error en la solicitud a Humata AI: {str(e)}")
     except Exception as e:
+        logger.error(f"Error inesperado: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
+
