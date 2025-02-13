@@ -9,10 +9,10 @@ import logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# Cargar la API Key de Humata AI y el document_id desde las variables de entorno
+# Cargar la API Key de Humata AI y el conversationId desde las variables de entorno
 HUMATA_API_KEY = os.getenv("HUMATA_API_KEY")  # Usa el nombre correcto de la variable de entorno
-DOCUMENT_ID = os.getenv("HUMATA_DOCUMENT_ID")  # Ahora el document_id se configura en Render
-HUMATA_ENDPOINT = "https://app.humata.ai/api/v1/conversations"  # Reemplaza con el endpoint correcto si cambia
+CONVERSATION_ID = os.getenv("HUMATA_CONVERSATION_ID")  # Ahora usa conversationId en vez de document_id
+HUMATA_ENDPOINT = "https://app.humata.ai/api/v1/ask"  # Nuevo endpoint basado en la documentación
 
 app = FastAPI()
 
@@ -40,20 +40,21 @@ async def chat_endpoint(request: ChatRequest):
         logger.error("API Key no configurada. Verifica las variables de entorno en Render.")
         raise HTTPException(status_code=500, detail="API Key no configurada. Verifica las variables de entorno en Render.")
     
-    if not DOCUMENT_ID or DOCUMENT_ID.strip() == "":
-        logger.error(f"DOCUMENT_ID no configurado o vacío. Valor actual: {DOCUMENT_ID}")
-        raise HTTPException(status_code=500, detail=f"DOCUMENT_ID no configurado o vacío. Verifica las variables de entorno en Render.")
+    if not CONVERSATION_ID or CONVERSATION_ID.strip() == "":
+        logger.error(f"CONVERSATION_ID no configurado o vacío. Valor actual: {CONVERSATION_ID}")
+        raise HTTPException(status_code=500, detail=f"CONVERSATION_ID no configurado o vacío. Verifica las variables de entorno en Render.")
     
     try:
-        logger.info(f"Usando DOCUMENT_ID: {DOCUMENT_ID}")  # Log para verificar si DOCUMENT_ID está vacío
+        logger.info(f"Usando CONVERSATION_ID: {CONVERSATION_ID}")  # Log para verificar si CONVERSATION_ID está vacío
         headers = {
             "Authorization": f"Bearer {HUMATA_API_KEY}",
             "Content-Type": "application/json"
         }
         
         payload = {
-            "query": request.message,
-            "documentIds": [DOCUMENT_ID],  # Se envía como lista según la documentación de Humata AI
+            "conversationId": CONVERSATION_ID,
+            "model": "gpt-4-turbo-preview",  # Modelo que usa Humata AI
+            "question": request.message,  # Cambié "query" por "question"
         }
         
         logger.info(f"Enviando solicitud a Humata AI con payload: {payload}")
@@ -66,7 +67,7 @@ async def chat_endpoint(request: ChatRequest):
         if response.status_code == 200:
             return {"reply": response_data.get("answer", "No encontré una respuesta en los documentos.")}
         else:
-            logger.error(f"Error en la API de Humata AI: {response_data}")
+            logger.error(f"Error en la API de Humata AI: Código {response.status_code}, Respuesta {response.text}")
             raise HTTPException(status_code=response.status_code, detail=f"Error de Humata AI: {response_data}")
 
     except requests.exceptions.RequestException as e:
@@ -75,5 +76,3 @@ async def chat_endpoint(request: ChatRequest):
     except Exception as e:
         logger.error(f"Error inesperado: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Error inesperado: {str(e)}")
-
-
