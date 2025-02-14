@@ -48,17 +48,25 @@ def create_conversation():
     logger.info(f"Creando nueva conversación con Humata AI usando DOCUMENT_ID: {DOCUMENT_ID}")
     response = requests.post(CREATE_CONVERSATION_ENDPOINT, json=payload, headers=headers)
 
-    # 🔍 Imprimir respuesta cruda para depuración
+    # 🔍 Imprimir la respuesta cruda antes de procesarla
     logger.info(f"Respuesta cruda de Humata AI: {response.status_code} - {response.text}")
 
     if response.status_code == 200:
         try:
             conversation_data = response.json()
-            conversation_id = conversation_data.get("id")  # Cambio aquí
-            
+            logger.info(f"Respuesta completa de Humata AI: {conversation_data}")  # 🔍 Para ver su estructura
+
+            # Probar diferentes posibles claves
+            conversation_id = (
+                conversation_data.get("conversationId") or  # Forma esperada
+                conversation_data.get("id") or  # En caso de cambio
+                conversation_data.get("data", {}).get("conversationId") or  # Si está dentro de "data"
+                conversation_data.get("conversation", {}).get("id")  # Si está dentro de "conversation"
+            )
+
             if not conversation_id:
                 logger.error("❌ Humata AI no devolvió un conversationId válido. Respuesta completa:")
-                logger.error(conversation_data)  # 🔍 Ver la estructura de la respuesta
+                logger.error(conversation_data)  # 🔍 Ver toda la estructura
 
             logger.info(f"✅ Conversación creada con ID: {conversation_id}")
             return conversation_id
@@ -68,6 +76,7 @@ def create_conversation():
     else:
         logger.error(f"❌ Error al crear conversación: Código {response.status_code} - {response.text}")
         return None
+
 
 
 @app.post("/chat")
