@@ -84,6 +84,7 @@ def create_conversation():
 
 
 import time
+import json
 
 @app.post("/chat")
 async def chat_endpoint(request: ChatRequest):
@@ -116,36 +117,61 @@ async def chat_endpoint(request: ChatRequest):
         }
         
         logger.info(f"Preguntando a Humata AI con payload: {payload}")
-        response = requests.post(ASK_ENDPOINT, json=payload, headers=headers)
+        response = requests.post(ASK_ENDPOINT, json=payload, headers=headers, stream=True)
 
-        # 🔍 Registrar respuesta de Humata
+        # 🔍 Registrar código de respuesta de Humata
         logger.info(f"🔍 Código de respuesta de Humata AI: {response.status_code}")
-        logger.info(f"🔍 Contenido de respuesta de Humata AI: {response.text}")
 
-        # 🔥 Si la respuesta está vacía o no es 200, lanzar error
         if response.status_code != 200:
             logger.error(f"❌ Error en Humata AI: Código {response.status_code} - Respuesta: {response.text}")
             raise HTTPException(status_code=response.status_code, detail=f"Error de Humata AI: {response.text}")
 
-        if not response.text.strip():
-            logger.error("❌ Humata AI devolvió una respuesta vacía.")
-            raise HTTPException(status_code=500, detail="Error: La API de Humata no devolvió una respuesta válida.")
+        # 🔥 Leer la respuesta en streaming y ensamblar el texto correctamente
+        answer_parts = []
+        buffer_word = ""  # Para acumular fragmentos parciales de palabras
 
-        # ✅ Intentamos convertir la respuesta en JSON
-        try:
-            response_data = response.json()
-        except Exception as e:
-            logger.error(f"❌ Error al convertir la respuesta a JSON: {str(e)}")
-            raise HTTPException(status_code=500, detail="Error en la conversión de respuesta de Humata.")
+        for line in response.iter_lines():
+            if line:
+                try:
+                    line_data = line.decode("utf-8").replace("data: ", "").strip()
+                    json_data = json.loads(line_data)  # Convertir string a JSON
+                    content = json_data.get("content", "")
 
-        # 🔍 Verificar si "answer" está presente en la respuesta
-        if "answer" not in response_data:
-            logger.error(f"❌ La respuesta de Humata no contiene 'answer': {response_data}")
-            raise HTTPException(status_code=500, detail="La API de Humata no devolvió una respuesta válida.")
+                    # Unir fragmentos cortados
+                    if buffer_word:
+                        content = buffer_word + content
+                        buffer_word = ""
 
-        logger.info(f"✅ Respuesta de Humata AI: {response_data['answer']}")
+                    # Si el fragmento es muy corto (≤3 caracteres) y no inicia con espacio, lo acumulamos
+                    if len(content) <= 3 and not content.startswith(" "):
+                        buffer_word = content
+                    else:
+                        answer_parts.append(content)
 
-        return {"reply": response_data["answer"]}
+                except Exception as e:
+                    logger.error(f"Error al procesar chunk de Humata AI: {str(e)} - Datos: {line}")
+
+        # Si quedó un fragmento en buffer_word, agregarlo al final
+        if buffer_word:
+            answer_parts.append(buffer_word)
+
+        # Unir los fragmentos correctamente y limpiar el texto
+        final_answer = " ".join(answer_parts)
+
+        # Corregir espacios incorrectos en puntuación
+        final_answer = (
+            final_answer.replace(" ,", ",")
+                        .replace(" .", ".")
+                        .replace(" :", ":")
+                        .replace(" ;", ";")
+                        .replace("( ", "(")
+                        .replace(" )", ")")
+                        .strip()
+        )
+
+        logger.info(f"✅ Respuesta ensamblada de Humata AI: {final_answer}")
+
+        return {"reply": final_answer}
 
     except requests.exceptions.RequestException as e:
         logger.error(f"❌ Error en la solicitud a Humata AI: {str(e)}")
@@ -154,3 +180,4 @@ async def chat_endpoint(request: ChatRequest):
     except Exception as e:
         logger.error(f"❌ Error inesperado: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Error inesperado: {str(e)}")
+
