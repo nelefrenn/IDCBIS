@@ -54,7 +54,10 @@ def create_conversation():
     if response.status_code == 200:
         try:
             conversation_data = response.json()
-            conversation_id = conversation_data.get("id")  # Ahora usamos "id"
+            logger.info(f"Respuesta completa de Humata AI: {conversation_data}")  # 🔍 Ver la estructura exacta
+
+            # 🔥 FIX: Asignar correctamente el ID
+            conversation_id = conversation_data["id"] if "id" in conversation_data else None
 
             if not conversation_id:
                 logger.error("❌ Humata AI no devolvió un conversationId válido. Respuesta completa:")
@@ -68,8 +71,6 @@ def create_conversation():
     else:
         logger.error(f"❌ Error al crear conversación: Código {response.status_code} - {response.text}")
         return None
-
-
 
 
 @app.post("/chat")
