@@ -64,6 +64,7 @@
             min-height: 350px;
             display: flex;
             flex-direction: column;
+            position: relative;
         }
         #chat-box {
             width: 100%;
@@ -92,6 +93,23 @@
             cursor: pointer;
             margin-left: 5px;
         }
+        #loader {
+            display: none;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+        }
+        #loader img {
+            width: 80px;
+            height: 80px;
+            animation: spin 2s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
     </style>
 </head>
 <body>
@@ -104,6 +122,10 @@
         </div>
         <div id="chat-container">
             <div id="chat-box"></div>
+            <div id="loader">
+                <img src="logo.png" alt="Cargando...">
+                <p>Procesando tu consulta, por favor espera...</p>
+            </div>
             <div id="chat-controls">
                 <input type="text" id="user-input" placeholder="Escribe tu pregunta aquí...">
                 <button id="send-button">Enviar</button>
@@ -119,29 +141,34 @@
 
             let chatBox = document.getElementById("chat-box");
             chatBox.innerHTML += `<p><strong>Tú:</strong> ${userInput}</p>`;
+
+            let loader = document.getElementById("loader");
+            loader.style.display = "block";
             
-            let response = await fetch("https://idcbis.onrender.com/chat", {  // ← Cambio aplicado aquí
+            let response = await fetch("https://idcbis.onrender.com/chat", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ message: userInput })
             });
-            
+
             let result = await response.json();
+            loader.style.display = "none";
             chatBox.innerHTML += `<p><strong>Asistente:</strong> ${result.reply}</p>`;
             document.getElementById("user-input").value = "";
             chatBox.scrollTop = chatBox.scrollHeight;
         });
-        
+
         document.getElementById("copy-button").addEventListener("click", function() {
             let chatContent = document.getElementById("chat-box").innerText;
             navigator.clipboard.writeText(chatContent).then(() => {
                 alert("Chat copiado al portapapeles");
             });
         });
-        
+
         document.getElementById("clear-button").addEventListener("click", function() {
             document.getElementById("chat-box").innerHTML = "";
         });
     </script>
 </body>
 </html>
+
