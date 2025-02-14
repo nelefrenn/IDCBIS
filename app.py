@@ -57,17 +57,20 @@ def create_conversation():
     if response.status_code == 200:
         try:
             conversation_data = response.json()
-            logger.info(f"Respuesta completa de Humata AI: {conversation_data}")  # 🔍 Ver la estructura exacta
 
-            # ✅ FIX: Asegurar indentación correcta y acceso al ID sin errores
-            conversation_id = conversation_data.get("id", None)  
+            # 🔍 Verificar que response.json() realmente devuelve un diccionario
+            logger.info(f"Tipo de respuesta JSON: {type(conversation_data)} - Contenido: {conversation_data}")
 
-            if not conversation_id:
+            # 🔥 FIX: Acceder al ID de forma segura
+            conversation_id = conversation_data.get("id")
+
+            if conversation_id:
+                logger.info(f"✅ Conversación creada con ID: {conversation_id}")
+                return conversation_id
+            else:
                 logger.error("❌ Humata AI no devolvió un conversationId válido. Respuesta completa:")
                 logger.error(conversation_data)
-
-            logger.info(f"✅ Conversación creada con ID: {conversation_id}")
-            return conversation_id
+                return None
 
         except Exception as e:
             logger.error(f"❌ Error al procesar JSON de Humata AI: {str(e)} - Respuesta: {response.text}")
@@ -75,6 +78,7 @@ def create_conversation():
     else:
         logger.error(f"❌ Error al crear conversación: Código {response.status_code} - {response.text}")
         return None
+
 
 
 
