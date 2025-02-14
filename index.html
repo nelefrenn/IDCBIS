@@ -29,7 +29,7 @@
             align-items: center;
         }
         img {
-            max-width: 100%;
+            max-width: 300px;
             height: auto;
             margin-bottom: 20px;
         }
@@ -64,7 +64,6 @@
             min-height: 350px;
             display: flex;
             flex-direction: column;
-            position: relative;
         }
         #chat-box {
             width: 100%;
@@ -78,14 +77,11 @@
         }
         #chat-controls {
             display: flex;
-            flex-wrap: wrap;
-            justify-content: center;
+            justify-content: space-between;
             margin-top: 10px;
-            gap: 5px;
         }
         #user-input {
-            flex: 1;
-            min-width: 60%;
+            width: 75%;
             padding: 10px;
         }
         #send-button, #copy-button, #clear-button {
@@ -94,40 +90,7 @@
             color: white;
             border: none;
             cursor: pointer;
-            flex: 1;
-            min-width: 30%;
-        }
-        #loader {
-            display: none;
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            text-align: center;
-        }
-        #loader img {
-            width: 80px;
-            height: 80px;
-            animation: fillColor 2s linear forwards;
-            filter: grayscale(100%);
-        }
-        @keyframes fillColor {
-            0% { filter: grayscale(100%); }
-            100% { filter: grayscale(0%); }
-        }
-        @media (max-width: 600px) {
-            #chat-container {
-                padding: 15px;
-            }
-            h1 {
-                font-size: 24px;
-            }
-            h2 {
-                font-size: 18px;
-            }
-            .notice {
-                font-size: 16px;
-            }
+            margin-left: 5px;
         }
     </style>
 </head>
@@ -141,10 +104,6 @@
         </div>
         <div id="chat-container">
             <div id="chat-box"></div>
-            <div id="loader">
-                <img src="logo.png" alt="Cargando...">
-                <p>Procesando tu consulta, por favor espera...</p>
-            </div>
             <div id="chat-controls">
                 <input type="text" id="user-input" placeholder="Escribe tu pregunta aquí...">
                 <button id="send-button">Enviar</button>
@@ -153,11 +112,36 @@
             </div>
         </div>
     </div>
-</body>
-</html>
+    <script>
+        document.getElementById("send-button").addEventListener("click", async function() {
+            let userInput = document.getElementById("user-input").value;
+            if (!userInput) return;
 
+            let chatBox = document.getElementById("chat-box");
+            chatBox.innerHTML += `<p><strong>Tú:</strong> ${userInput}</p>`;
+            
+            let response = await fetch("https://idcbis.onrender.com/chat", {  // ← Cambio aplicado aquí
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ message: userInput })
+            });
+            
+            let result = await response.json();
+            chatBox.innerHTML += `<p><strong>Asistente:</strong> ${result.reply}</p>`;
+            document.getElementById("user-input").value = "";
+            chatBox.scrollTop = chatBox.scrollHeight;
+        });
+        
+        document.getElementById("copy-button").addEventListener("click", function() {
+            let chatContent = document.getElementById("chat-box").innerText;
+            navigator.clipboard.writeText(chatContent).then(() => {
+                alert("Chat copiado al portapapeles");
+            });
+        });
+        
+        document.getElementById("clear-button").addEventListener("click", function() {
+            document.getElementById("chat-box").innerHTML = "";
         });
     </script>
 </body>
 </html>
-
