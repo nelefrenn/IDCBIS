@@ -47,11 +47,11 @@ def create_conversation():
     payload = {
         "documentIds": [DOCUMENT_ID]  # Crear conversación con el documento
     }
-    
+
     logger.info(f"Creando nueva conversación con Humata AI usando DOCUMENT_ID: {DOCUMENT_ID}")
     response = requests.post(CREATE_CONVERSATION_ENDPOINT, json=payload, headers=headers)
 
-    # 🔍 Imprimir la respuesta completa para depuración
+    # 🔍 Imprimir la respuesta cruda para depuración
     logger.info(f"Respuesta cruda de Humata AI: {response.status_code} - {response.text}")
 
     if response.status_code == 200:
@@ -59,9 +59,8 @@ def create_conversation():
             conversation_data = response.json()
             logger.info(f"Respuesta completa de Humata AI: {conversation_data}")  # 🔍 Ver la estructura exacta
 
-            # 🔥 FIX: Asignar correctamente el ID
-           conversation_id = conversation_data.get("id", None)  # Accede directamente al ID
-
+            # ✅ FIX: Asegurar indentación correcta y acceso al ID sin errores
+            conversation_id = conversation_data.get("id", None)  
 
             if not conversation_id:
                 logger.error("❌ Humata AI no devolvió un conversationId válido. Respuesta completa:")
@@ -69,12 +68,14 @@ def create_conversation():
 
             logger.info(f"✅ Conversación creada con ID: {conversation_id}")
             return conversation_id
+
         except Exception as e:
             logger.error(f"❌ Error al procesar JSON de Humata AI: {str(e)} - Respuesta: {response.text}")
             return None
     else:
         logger.error(f"❌ Error al crear conversación: Código {response.status_code} - {response.text}")
         return None
+
 
 
 @app.post("/chat")
