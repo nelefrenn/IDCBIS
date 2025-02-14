@@ -108,12 +108,12 @@ async def chat_endpoint(request: ChatRequest):
             "Content-Type": "application/json"
         }
         
-        # ✅ Agregamos `selectedAnswerApproach`
+        # ✅ Cambiamos `selectedAnswerApproach` a "Grounded"
         payload = {
             "conversationId": conversation_id,  
             "question": request.message,
             "model": "gpt-4-turbo-preview",
-            "selectedAnswerApproach": "Balanced"  # Puede ser "Grounded", "Balanced" o "Creative"
+            "selectedAnswerApproach": "Grounded"  # Ahora se usa "Grounded"
         }
         
         logger.info(f"Preguntando a Humata AI con payload: {payload}")
