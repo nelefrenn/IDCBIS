@@ -39,6 +39,8 @@ class ChatRequest(BaseModel):
     message: str
 
 # Función para crear una nueva conversación con el documento
+import json
+
 def create_conversation():
     headers = {
         "Authorization": f"Bearer {HUMATA_API_KEY}",
@@ -51,17 +53,18 @@ def create_conversation():
     logger.info(f"Creando nueva conversación con Humata AI usando DOCUMENT_ID: {DOCUMENT_ID}")
     response = requests.post(CREATE_CONVERSATION_ENDPOINT, json=payload, headers=headers)
 
-    # 🔍 Imprimir la respuesta cruda para depuración
+    # 🔍 Imprimir la respuesta cruda antes de convertirla a JSON
     logger.info(f"Respuesta cruda de Humata AI: {response.status_code} - {response.text}")
 
     if response.status_code == 200:
         try:
-            conversation_data = response.json()
+            # 🔥 FIX: Convertir manualmente la respuesta en JSON
+            conversation_data = json.loads(response.text)
 
-            # 🔍 Verificar que response.json() realmente devuelve un diccionario
+            # 🔍 Imprimir el tipo de respuesta para depuración
             logger.info(f"Tipo de respuesta JSON: {type(conversation_data)} - Contenido: {conversation_data}")
 
-            # 🔥 FIX: Acceder al ID de forma segura
+            # 🔥 FIX: Asegurar que "id" se extrae correctamente
             conversation_id = conversation_data.get("id")
 
             if conversation_id:
@@ -72,9 +75,10 @@ def create_conversation():
                 logger.error(conversation_data)
                 return None
 
-        except Exception as e:
-            logger.error(f"❌ Error al procesar JSON de Humata AI: {str(e)} - Respuesta: {response.text}")
+        except json.JSONDecodeError as e:
+            logger.error(f"❌ Error al convertir la respuesta a JSON: {str(e)} - Respuesta: {response.text}")
             return None
+
     else:
         logger.error(f"❌ Error al crear conversación: Código {response.status_code} - {response.text}")
         return None
