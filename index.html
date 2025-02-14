@@ -120,7 +120,7 @@
             let chatBox = document.getElementById("chat-box");
             chatBox.innerHTML += `<p><strong>Tú:</strong> ${userInput}</p>`;
             
-            let response = await fetch("https://idcbis.onrender.com", {
+            let response = await fetch("https://idcbis.onrender.com/chat", {  // ← Cambio aplicado aquí
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ message: userInput })
