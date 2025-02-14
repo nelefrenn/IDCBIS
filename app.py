@@ -58,15 +58,15 @@ def create_conversation():
 
     if response.status_code == 200:
         try:
-            # 🔥 FIX: Convertir manualmente la respuesta en JSON
             conversation_data = json.loads(response.text)
 
             # 🔍 Verificar tipo de dato de la respuesta
             logger.info(f"Tipo de respuesta JSON: {type(conversation_data)} - Contenido: {conversation_data}")
 
-            # 🔥 FIX: Asegurar que "id" existe en el JSON
-            if "id" in conversation_data:
-                conversation_id = conversation_data["id"]
+            # 🔥 FIX: Extraer "id" y mapearlo como "conversationId"
+            conversation_id = conversation_data.get("id")  # Ahora tomamos "id"
+
+            if conversation_id:
                 logger.info(f"✅ Conversación creada con ID: {conversation_id}")
                 return conversation_id
             else:
@@ -81,7 +81,6 @@ def create_conversation():
     else:
         logger.error(f"❌ Error al crear conversación: Código {response.status_code} - {response.text}")
         return None
-
 
 
 @app.post("/chat")
