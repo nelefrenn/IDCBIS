@@ -61,17 +61,16 @@ def create_conversation():
             # 🔥 FIX: Convertir manualmente la respuesta en JSON
             conversation_data = json.loads(response.text)
 
-            # 🔍 Imprimir el tipo de respuesta para depuración
+            # 🔍 Verificar tipo de dato de la respuesta
             logger.info(f"Tipo de respuesta JSON: {type(conversation_data)} - Contenido: {conversation_data}")
 
-            # 🔥 FIX: Asegurar que "id" se extrae correctamente
-            conversation_id = conversation_data.get("id")
-
-            if conversation_id:
+            # 🔥 FIX: Asegurar que "id" existe en el JSON
+            if "id" in conversation_data:
+                conversation_id = conversation_data["id"]
                 logger.info(f"✅ Conversación creada con ID: {conversation_id}")
                 return conversation_id
             else:
-                logger.error("❌ Humata AI no devolvió un conversationId válido. Respuesta completa:")
+                logger.error("❌ No se encontró 'id' en la respuesta de Humata AI")
                 logger.error(conversation_data)
                 return None
 
@@ -82,7 +81,6 @@ def create_conversation():
     else:
         logger.error(f"❌ Error al crear conversación: Código {response.status_code} - {response.text}")
         return None
-
 
 
 
