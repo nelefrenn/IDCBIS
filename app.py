@@ -84,7 +84,6 @@ def create_conversation():
 
 
 @app.post("/chat")
-@app.post("/chat")
 async def chat_endpoint(request: ChatRequest):
     if not HUMATA_API_KEY:
         logger.error("API Key no configurada. Verifica las variables de entorno en Render.")
@@ -105,27 +104,33 @@ async def chat_endpoint(request: ChatRequest):
         }
         
         payload = {
-            "conversationId": conversation_id,  # 🔥 Ahora usamos "conversationId"
+            "conversationId": conversation_id,  # Humata requiere "conversationId"
             "model": "gpt-4-turbo-preview",
             "question": request.message,
         }
         
         logger.info(f"Preguntando a Humata AI con payload: {payload}")
         response = requests.post(ASK_ENDPOINT, json=payload, headers=headers)
-        response_data = response.json()
-        
-        logger.info(f"Código de respuesta de Humata AI: {response.status_code}")
-        logger.info(f"Respuesta completa de Humata AI: {response_data}")
 
-        if response.status_code == 200:
-            return {"reply": response_data.get("answer", "No encontré una respuesta en los documentos.")}
-        else:
-            logger.error(f"Error en la API de Humata AI: Código {response.status_code}, Respuesta {response.text}")
-            raise HTTPException(status_code=response.status_code, detail=f"Error de Humata AI: {response_data}")
+        # 🔥 FIX: Verificar si la respuesta está vacía antes de intentar parsear JSON
+        if response.status_code != 200:
+            logger.error(f"❌ Error en Humata AI: Código {response.status_code} - Respuesta: {response.text}")
+            raise HTTPException(status_code=response.status_code, detail=f"Error de Humata AI: {response.text}")
+
+        if not response.text.strip():  # Verificar si la respuesta es vacía
+            logger.error("❌ Humata AI devolvió una respuesta vacía.")
+            raise HTTPException(status_code=500, detail="Error: La API de Humata no devolvió una respuesta válida.")
+
+        response_data = response.json()  # Intentamos convertir a JSON
+        
+        logger.info(f"✅ Respuesta de Humata AI: {response_data}")
+
+        return {"reply": response_data.get("answer", "No encontré una respuesta en los documentos.")}
 
     except requests.exceptions.RequestException as e:
-        logger.error(f"Error en la solicitud a Humata AI: {str(e)}")
+        logger.error(f"❌ Error en la solicitud a Humata AI: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Error en la solicitud a Humata AI: {str(e)}")
+
     except Exception as e:
-        logger.error(f"Error inesperado: {str(e)}")
+        logger.error(f"❌ Error inesperado: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Error inesperado: {str(e)}")
