@@ -64,6 +64,7 @@
             min-height: 350px;
             display: flex;
             flex-direction: column;
+            position: relative;
         }
         #chat-box {
             width: 100%;
@@ -92,6 +93,24 @@
             cursor: pointer;
             margin-left: 5px;
         }
+        #loader {
+            display: none;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+        }
+        #loader img {
+            width: 80px;
+            height: 80px;
+            animation: fillColor 2s linear forwards;
+            filter: grayscale(100%);
+        }
+        @keyframes fillColor {
+            0% { filter: grayscale(100%); }
+            100% { filter: grayscale(0%); }
+        }
     </style>
 </head>
 <body>
@@ -104,6 +123,10 @@
         </div>
         <div id="chat-container">
             <div id="chat-box"></div>
+            <div id="loader">
+                <img src="logo.png" alt="Cargando...">
+                <p>Procesando tu consulta, por favor espera...</p>
+            </div>
             <div id="chat-controls">
                 <input type="text" id="user-input" placeholder="Escribe tu pregunta aquí...">
                 <button id="send-button">Enviar</button>
@@ -113,35 +136,43 @@
         </div>
     </div>
     <script>
+        const frasesFinales = [
+            "¿En qué más puedo ayudarte hoy? Estoy aquí para ofrecerte la mejor información del IDCBIS.",
+            "Si necesitas más información, estaré encantado de asistirte.",
+            "No dudes en consultarme cualquier otra inquietud.",
+            "Estoy disponible para resolver más dudas. ¿Qué más necesitas saber?",
+            "Aquí para ayudarte. Pregunta lo que necesites.",
+            "Si requieres más detalles, dime en qué puedo colaborar contigo.",
+            "Tu conocimiento es nuestra prioridad. ¿Tienes más consultas?"
+        ];
+
         document.getElementById("send-button").addEventListener("click", async function() {
             let userInput = document.getElementById("user-input").value;
             if (!userInput) return;
 
             let chatBox = document.getElementById("chat-box");
             chatBox.innerHTML += `<p><strong>Tú:</strong> ${userInput}</p>`;
+
+            let loader = document.getElementById("loader");
+            loader.style.display = "block";
             
-            let response = await fetch("https://idcbis.onrender.com/chat", {  // ← Cambio aplicado aquí
+            let response = await fetch("https://idcbis.onrender.com/chat", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ message: userInput })
             });
-            
+
             let result = await response.json();
+            loader.style.display = "none";
+            
+            let fraseAleatoria = frasesFinales[Math.floor(Math.random() * frasesFinales.length)];
             chatBox.innerHTML += `<p><strong>Asistente:</strong> ${result.reply}</p>`;
+            chatBox.innerHTML += `<p><em>${fraseAleatoria}</em></p>`;
+            
             document.getElementById("user-input").value = "";
             chatBox.scrollTop = chatBox.scrollHeight;
-        });
-        
-        document.getElementById("copy-button").addEventListener("click", function() {
-            let chatContent = document.getElementById("chat-box").innerText;
-            navigator.clipboard.writeText(chatContent).then(() => {
-                alert("Chat copiado al portapapeles");
-            });
-        });
-        
-        document.getElementById("clear-button").addEventListener("click", function() {
-            document.getElementById("chat-box").innerHTML = "";
         });
     </script>
 </body>
 </html>
+
