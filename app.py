@@ -94,10 +94,10 @@ async def chat_endpoint(request: ChatRequest):
         }
         
         payload = {
-            "conversationId": conversation_id,  # Usar la conversación recién creada
-            "model": "gpt-4-turbo-preview",
-            "question": request.message,
-        }
+    "id": conversation_id,  # Usar "id" en lugar de "conversationId"
+    "model": "gpt-4-turbo-preview",
+    "question": request.message,
+}
         
         logger.info(f"Preguntando a Humata AI con payload: {payload}")
         response = requests.post(ASK_ENDPOINT, json=payload, headers=headers)
