@@ -126,9 +126,9 @@ async def chat_endpoint(request: ChatRequest):
             logger.error(f"❌ Error en Humata AI: Código {response.status_code} - Respuesta: {response.text}")
             raise HTTPException(status_code=response.status_code, detail=f"Error de Humata AI: {response.text}")
 
-        # 🔥 Leer la respuesta en streaming y ensamblar el texto correctamente
+        # 🔥 Leer la respuesta en streaming y ensamblar correctamente el texto
         answer_parts = []
-        buffer_word = ""  # Para acumular fragmentos parciales de palabras
+        last_word = ""  # Para reconstruir palabras cortadas
 
         for line in response.iter_lines():
             if line:
@@ -137,39 +137,29 @@ async def chat_endpoint(request: ChatRequest):
                     json_data = json.loads(line_data)  # Convertir string a JSON
                     content = json_data.get("content", "")
 
-                    # Unir fragmentos cortados
-                    if buffer_word:
-                        content = buffer_word + content
-                        buffer_word = ""
+                    # Si hay una palabra cortada del fragmento anterior, unirla con la nueva
+                    if last_word:
+                        content = last_word + content
+                        last_word = ""
 
-                    # Si el fragmento es muy corto (≤3 caracteres) y no inicia con espacio, lo acumulamos
-                    if len(content) <= 3 and not content.startswith(" "):
-                        buffer_word = content
+                    # Verificar si el contenido parece una palabra incompleta
+                    if len(content) <= 3 and not content.endswith(" "):
+                        last_word = content  # Guardar fragmento incompleto para unirlo con el siguiente
                     else:
                         answer_parts.append(content)
 
                 except Exception as e:
                     logger.error(f"Error al procesar chunk de Humata AI: {str(e)} - Datos: {line}")
 
-        # Si quedó un fragmento en buffer_word, agregarlo al final
-        if buffer_word:
-            answer_parts.append(buffer_word)
+        # Si queda un fragmento en last_word, agregarlo al final
+        if last_word:
+            answer_parts.append(last_word)
 
         # Unir los fragmentos correctamente y limpiar el texto
-        final_answer = " ".join(answer_parts)
+        final_answer = "".join(answer_parts)  # 🔥 Eliminamos espacios extra
+        final_answer = " ".join(final_answer.split())  # 🔥 Normalizamos los espacios
 
-        # Corregir espacios incorrectos en puntuación
-        final_answer = (
-            final_answer.replace(" ,", ",")
-                        .replace(" .", ".")
-                        .replace(" :", ":")
-                        .replace(" ;", ";")
-                        .replace("( ", "(")
-                        .replace(" )", ")")
-                        .strip()
-        )
-
-        logger.info(f"✅ Respuesta ensamblada de Humata AI: {final_answer}")
+        logger.info(f"✅ Respuesta limpia de Humata AI: {final_answer}")
 
         return {"reply": final_answer}
 
