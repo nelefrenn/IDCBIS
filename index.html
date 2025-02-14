@@ -29,7 +29,7 @@
             align-items: center;
         }
         img {
-            max-width: 300px;
+            max-width: 100%;
             height: auto;
             margin-bottom: 20px;
         }
@@ -78,12 +78,19 @@
         }
         #chat-controls {
             display: flex;
-            justify-content: space-between;
+            flex-direction: column;
+            gap: 10px;
             margin-top: 10px;
+            width: 100%;
         }
         #user-input {
-            width: 75%;
+            width: 100%;
             padding: 10px;
+        }
+        .button-group {
+            display: flex;
+            justify-content: space-between;
+            width: 100%;
         }
         #send-button, #copy-button, #clear-button {
             padding: 10px;
@@ -91,7 +98,8 @@
             color: white;
             border: none;
             cursor: pointer;
-            margin-left: 5px;
+            flex: 1;
+            margin: 0 5px;
         }
         #loader {
             display: none;
@@ -111,6 +119,17 @@
             0% { filter: grayscale(100%); }
             100% { filter: grayscale(0%); }
         }
+        @media (max-width: 600px) {
+            h1 {
+                font-size: 24px;
+            }
+            h2 {
+                font-size: 18px;
+            }
+            .notice {
+                font-size: 16px;
+            }
+        }
     </style>
 </head>
 <body>
@@ -129,9 +148,11 @@
             </div>
             <div id="chat-controls">
                 <input type="text" id="user-input" placeholder="Escribe tu pregunta aquí...">
-                <button id="send-button">Enviar</button>
-                <button id="copy-button">Copiar</button>
-                <button id="clear-button">Borrar</button>
+                <div class="button-group">
+                    <button id="send-button">Enviar</button>
+                    <button id="copy-button">Copiar</button>
+                    <button id="clear-button">Borrar</button>
+                </div>
             </div>
         </div>
     </div>
