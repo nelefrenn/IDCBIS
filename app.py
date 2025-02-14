@@ -108,31 +108,44 @@ async def chat_endpoint(request: ChatRequest):
             "Content-Type": "application/json"
         }
         
-        # ✅ Cambiamos `selectedAnswerApproach` a "Grounded"
         payload = {
             "conversationId": conversation_id,  
             "question": request.message,
             "model": "gpt-4-turbo-preview",
-            "selectedAnswerApproach": "Grounded"  # Ahora se usa "Grounded"
+            "selectedAnswerApproach": "Grounded"
         }
         
         logger.info(f"Preguntando a Humata AI con payload: {payload}")
         response = requests.post(ASK_ENDPOINT, json=payload, headers=headers)
 
-        # 🔥 Si la respuesta está vacía o no es 200, mostrar error
+        # 🔍 Registrar respuesta de Humata
+        logger.info(f"🔍 Código de respuesta de Humata AI: {response.status_code}")
+        logger.info(f"🔍 Contenido de respuesta de Humata AI: {response.text}")
+
+        # 🔥 Si la respuesta está vacía o no es 200, lanzar error
         if response.status_code != 200:
             logger.error(f"❌ Error en Humata AI: Código {response.status_code} - Respuesta: {response.text}")
             raise HTTPException(status_code=response.status_code, detail=f"Error de Humata AI: {response.text}")
 
-        if not response.text.strip():  
+        if not response.text.strip():
             logger.error("❌ Humata AI devolvió una respuesta vacía.")
             raise HTTPException(status_code=500, detail="Error: La API de Humata no devolvió una respuesta válida.")
 
-        response_data = response.json() 
-        
-        logger.info(f"✅ Respuesta de Humata AI: {response_data}")
+        # ✅ Intentamos convertir la respuesta en JSON
+        try:
+            response_data = response.json()
+        except Exception as e:
+            logger.error(f"❌ Error al convertir la respuesta a JSON: {str(e)}")
+            raise HTTPException(status_code=500, detail="Error en la conversión de respuesta de Humata.")
 
-        return {"reply": response_data.get("answer", "No encontré una respuesta en los documentos.")}
+        # 🔍 Verificar si "answer" está presente en la respuesta
+        if "answer" not in response_data:
+            logger.error(f"❌ La respuesta de Humata no contiene 'answer': {response_data}")
+            raise HTTPException(status_code=500, detail="La API de Humata no devolvió una respuesta válida.")
+
+        logger.info(f"✅ Respuesta de Humata AI: {response_data['answer']}")
+
+        return {"reply": response_data["answer"]}
 
     except requests.exceptions.RequestException as e:
         logger.error(f"❌ Error en la solicitud a Humata AI: {str(e)}")
