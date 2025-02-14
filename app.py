@@ -145,3 +145,4 @@ async def chat_endpoint(request: ChatRequest):
         logger.error(f"Error inesperado: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Error inesperado: {str(e)}")
 
+
