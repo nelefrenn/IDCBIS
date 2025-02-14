@@ -108,25 +108,27 @@ async def chat_endpoint(request: ChatRequest):
             "Content-Type": "application/json"
         }
         
+        # ✅ Agregamos `selectedAnswerApproach`
         payload = {
-            "conversationId": conversation_id,  # Humata requiere "conversationId"
-            "model": "gpt-4-turbo-preview",
+            "conversationId": conversation_id,  
             "question": request.message,
+            "model": "gpt-4-turbo-preview",
+            "selectedAnswerApproach": "Balanced"  # Puede ser "Grounded", "Balanced" o "Creative"
         }
         
         logger.info(f"Preguntando a Humata AI con payload: {payload}")
         response = requests.post(ASK_ENDPOINT, json=payload, headers=headers)
 
-        # 🔥 FIX: Si la respuesta está vacía, manejar el error
+        # 🔥 Si la respuesta está vacía o no es 200, mostrar error
         if response.status_code != 200:
             logger.error(f"❌ Error en Humata AI: Código {response.status_code} - Respuesta: {response.text}")
             raise HTTPException(status_code=response.status_code, detail=f"Error de Humata AI: {response.text}")
 
-        if not response.text.strip():  # Verificar si la respuesta está vacía
+        if not response.text.strip():  
             logger.error("❌ Humata AI devolvió una respuesta vacía.")
             raise HTTPException(status_code=500, detail="Error: La API de Humata no devolvió una respuesta válida.")
 
-        response_data = response.json()  # Intentamos convertir a JSON
+        response_data = response.json() 
         
         logger.info(f"✅ Respuesta de Humata AI: {response_data}")
 
