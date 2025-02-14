@@ -83,6 +83,8 @@ def create_conversation():
         return None
 
 
+import time
+
 @app.post("/chat")
 async def chat_endpoint(request: ChatRequest):
     if not HUMATA_API_KEY:
@@ -96,6 +98,9 @@ async def chat_endpoint(request: ChatRequest):
     conversation_id = create_conversation()
     if not conversation_id:
         raise HTTPException(status_code=500, detail="No se pudo crear la conversación con Humata AI. Verifica el DOCUMENT_ID y los logs.")
+
+    # 🔥 Esperar 1 segundo antes de hacer la pregunta (para evitar problemas de sincronización)
+    time.sleep(1)
 
     try:
         headers = {
@@ -112,12 +117,12 @@ async def chat_endpoint(request: ChatRequest):
         logger.info(f"Preguntando a Humata AI con payload: {payload}")
         response = requests.post(ASK_ENDPOINT, json=payload, headers=headers)
 
-        # 🔥 FIX: Verificar si la respuesta está vacía antes de intentar parsear JSON
+        # 🔥 FIX: Si la respuesta está vacía, manejar el error
         if response.status_code != 200:
             logger.error(f"❌ Error en Humata AI: Código {response.status_code} - Respuesta: {response.text}")
             raise HTTPException(status_code=response.status_code, detail=f"Error de Humata AI: {response.text}")
 
-        if not response.text.strip():  # Verificar si la respuesta es vacía
+        if not response.text.strip():  # Verificar si la respuesta está vacía
             logger.error("❌ Humata AI devolvió una respuesta vacía.")
             raise HTTPException(status_code=500, detail="Error: La API de Humata no devolvió una respuesta válida.")
 
