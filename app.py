@@ -47,21 +47,28 @@ def create_conversation():
     
     logger.info(f"Creando nueva conversación con Humata AI usando DOCUMENT_ID: {DOCUMENT_ID}")
     response = requests.post(CREATE_CONVERSATION_ENDPOINT, json=payload, headers=headers)
-    
-    # Imprimir la respuesta completa de la API para depuración
-    logger.info(f"Respuesta completa de Humata AI al crear conversación: {response.status_code} - {response.text}")
+
+    # 🔍 Imprimir respuesta cruda para depuración
+    logger.info(f"Respuesta cruda de Humata AI: {response.status_code} - {response.text}")
 
     if response.status_code == 200:
-        conversation_data = response.json()
-        conversation_id = conversation_data.get("conversationId")
-        if not conversation_id:
-            logger.error("Humata AI no devolvió un conversationId válido.")
+        try:
+            conversation_data = response.json()
+            conversation_id = conversation_data.get("id")  # Cambio aquí
+            
+            if not conversation_id:
+                logger.error("❌ Humata AI no devolvió un conversationId válido. Respuesta completa:")
+                logger.error(conversation_data)  # 🔍 Ver la estructura de la respuesta
+
+            logger.info(f"✅ Conversación creada con ID: {conversation_id}")
+            return conversation_id
+        except Exception as e:
+            logger.error(f"❌ Error al procesar JSON de Humata AI: {str(e)} - Respuesta: {response.text}")
             return None
-        logger.info(f"Conversación creada con ID: {conversation_id}")
-        return conversation_id
     else:
-        logger.error(f"Error al crear conversación: {response.status_code} - {response.text}")
+        logger.error(f"❌ Error al crear conversación: Código {response.status_code} - {response.text}")
         return None
+
 
 @app.post("/chat")
 async def chat_endpoint(request: ChatRequest):
