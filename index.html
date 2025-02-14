@@ -104,11 +104,12 @@
         #loader img {
             width: 80px;
             height: 80px;
-            animation: spin 2s linear infinite;
+            animation: fillColor 2s linear forwards;
+            filter: grayscale(100%);
         }
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
+        @keyframes fillColor {
+            0% { filter: grayscale(100%); }
+            100% { filter: grayscale(0%); }
         }
     </style>
 </head>
@@ -135,6 +136,16 @@
         </div>
     </div>
     <script>
+        const frasesFinales = [
+            "¿En qué más puedo ayudarte hoy? Estoy aquí para ofrecerte la mejor información del IDCBIS.",
+            "Si necesitas más información, estaré encantado de asistirte.",
+            "No dudes en consultarme cualquier otra inquietud.",
+            "Estoy disponible para resolver más dudas. ¿Qué más necesitas saber?",
+            "Aquí para ayudarte. Pregunta lo que necesites.",
+            "Si requieres más detalles, dime en qué puedo colaborar contigo.",
+            "Tu conocimiento es nuestra prioridad. ¿Tienes más consultas?"
+        ];
+
         document.getElementById("send-button").addEventListener("click", async function() {
             let userInput = document.getElementById("user-input").value;
             if (!userInput) return;
@@ -153,20 +164,13 @@
 
             let result = await response.json();
             loader.style.display = "none";
+            
+            let fraseAleatoria = frasesFinales[Math.floor(Math.random() * frasesFinales.length)];
             chatBox.innerHTML += `<p><strong>Asistente:</strong> ${result.reply}</p>`;
+            chatBox.innerHTML += `<p><em>${fraseAleatoria}</em></p>`;
+            
             document.getElementById("user-input").value = "";
             chatBox.scrollTop = chatBox.scrollHeight;
-        });
-
-        document.getElementById("copy-button").addEventListener("click", function() {
-            let chatContent = document.getElementById("chat-box").innerText;
-            navigator.clipboard.writeText(chatContent).then(() => {
-                alert("Chat copiado al portapapeles");
-            });
-        });
-
-        document.getElementById("clear-button").addEventListener("click", function() {
-            document.getElementById("chat-box").innerHTML = "";
         });
     </script>
 </body>
