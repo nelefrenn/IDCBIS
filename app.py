@@ -4,6 +4,9 @@ from pydantic import BaseModel
 import requests
 import os
 import logging
+import time
+time.sleep(0.5)  # Esperar medio segundo antes de enviar la respuesta completa
+
 
 # Configurar logs
 logging.basicConfig(level=logging.INFO)
