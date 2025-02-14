@@ -57,7 +57,8 @@ def create_conversation():
             logger.info(f"Respuesta completa de Humata AI: {conversation_data}")  # 🔍 Ver la estructura exacta
 
             # 🔥 FIX: Asignar correctamente el ID
-            conversation_id = conversation_data["id"] if "id" in conversation_data else None
+           conversation_id = conversation_data.get("id", None)  # Accede directamente al ID
+
 
             if not conversation_id:
                 logger.error("❌ Humata AI no devolvió un conversationId válido. Respuesta completa:")
