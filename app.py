@@ -4,6 +4,7 @@ from pydantic import BaseModel
 import requests
 import os
 import logging
+import json
 
 # Configurar logs
 logging.basicConfig(level=logging.INFO)
@@ -48,7 +49,6 @@ def create_conversation():
     logger.info(f"Creando nueva conversación con Humata AI usando DOCUMENT_ID: {DOCUMENT_ID}")
     response = requests.post(CREATE_CONVERSATION_ENDPOINT, json=payload, headers=headers)
     
-    # Imprimir la respuesta completa de la API para depuración
     logger.info(f"Respuesta completa de Humata AI al crear conversación: {response.status_code} - {response.text}")
 
     if response.status_code == 200:
@@ -73,7 +73,6 @@ async def chat_endpoint(request: ChatRequest):
         logger.error("DOCUMENT_ID no configurado. Verifica las variables de entorno en Render.")
         raise HTTPException(status_code=500, detail="DOCUMENT_ID no configurado. Verifica las variables de entorno en Render.")
     
-    # Crear una conversación antes de hacer preguntas
     conversation_id = create_conversation()
     if not conversation_id:
         raise HTTPException(status_code=500, detail="No se pudo crear la conversación con Humata AI. Verifica el DOCUMENT_ID y los logs.")
@@ -91,17 +90,85 @@ async def chat_endpoint(request: ChatRequest):
         }
         
         logger.info(f"Preguntando a Humata AI con payload: {payload}")
-        response = requests.post(ASK_ENDPOINT, json=payload, headers=headers)
-        response_data = response.json()
+        response = requests.post(ASK_ENDPOINT, json=payload, headers=headers, stream=True)
         
-        logger.info(f"Código de respuesta de Humata AI: {response.status_code}")
-        logger.info(f"Respuesta completa de Humata AI: {response_data}")
+        # Leer la respuesta en streaming y ensamblar el texto correctamente
+        answer_parts = []
+        buffer_word = ""  # Para acumular fragmentos parciales de palabras
 
-        if response.status_code == 200:
-            return {"reply": response_data.get("answer", "No encontré una respuesta en los documentos.")}
-        else:
-            logger.error(f"Error en la API de Humata AI: Código {response.status_code}, Respuesta {response.text}")
-            raise HTTPException(status_code=response.status_code, detail=f"Error de Humata AI: {response_data}")
+        for line in response.iter_lines():
+            if line:
+                try:
+                    line_data = line.decode("utf-8").replace("data: ", "").strip()
+                    json_data = json.loads(line_data)  # Convertir string a JSON
+                    content = json_data.get("content", "")
+
+                    # Unir fragmentos cortados
+                    if buffer_word:
+                        content = buffer_word + content
+                        buffer_word = ""
+
+                    # Si el fragmento es muy corto (≤3 caracteres) y no inicia con espacio, lo acumulamos
+                    if len(content) <= 3 and not content.startswith(" "):
+                        buffer_word = content
+                    else:
+                        answer_parts.append(content)
+
+                except Exception as e:
+                    logger.error(f"Error al procesar chunk de Humata AI: {str(e)} - Datos: {line}")
+
+        # Si quedó un fragmento en buffer_word, agregarlo al final
+        if buffer_word:
+            answer_parts.append(buffer_word)
+
+        # Unir los fragmentos correctamente y limpiar el texto
+        final_answer = " ".join(answer_parts)
+
+        # Corregir espacios incorrectos en puntuación
+        final_answer = (
+            final_answer.replace(" ,", ",")
+                        .replace(" .", ".")
+                        .replace(" :", ":")
+                        .replace(" ;", ";")
+                        .replace("( ", "(")
+                        .replace(" )", ")")
+                        .strip()
+        )
+      def create_conversation():
+    headers = {
+        "Authorization": f"Bearer {HUMATA_API_KEY}",
+        "Content-Type": "application/json"
+    }
+    payload = {
+        "documentIds": [DOCUMENT_ID]  # Crear conversación con el documento
+    }
+    
+    logger.info(f"Creando nueva conversación con Humata AI usando DOCUMENT_ID: {DOCUMENT_ID}")
+    response = requests.post(CREATE_CONVERSATION_ENDPOINT, json=payload, headers=headers)
+
+    # 🔍 Imprimir respuesta completa de Humata para depuración
+    logger.info(f"Respuesta cruda de Humata AI: {response.status_code} - {response.text}")
+
+    if response.status_code == 200:
+        try:
+            conversation_data = response.json()
+            conversation_id = conversation_data.get("conversationId")
+            
+            if not conversation_id:
+                logger.error("❌ Humata AI no devolvió un conversationId válido. Respuesta completa:")
+                logger.error(conversation_data)  # 🔍 Ver la estructura de la respuesta
+
+            logger.info(f"✅ Conversación creada con ID: {conversation_id}")
+            return conversation_id
+        except Exception as e:
+            logger.error(f"❌ Error al procesar JSON de Humata AI: {str(e)} - Respuesta: {response.text}")
+            return None
+    else:
+        logger.error(f"❌ Error al crear conversación: Código {response.status_code} - {response.text}")
+        return None
+  
+        logger.info(f"Respuesta en streaming procesada y limpia: {final_answer}")
+        return {"reply": final_answer}
 
     except requests.exceptions.RequestException as e:
         logger.error(f"Error en la solicitud a Humata AI: {str(e)}")
